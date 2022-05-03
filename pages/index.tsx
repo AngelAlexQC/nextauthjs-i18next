@@ -1,9 +1,16 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import type { NextPage, NextPageContext } from 'next';
+import Head from 'next/head';
+import Image from 'next/image';
+import styles from '../styles/Home.module.css';
+import { useRouter } from 'next/router';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 const Home: NextPage = () => {
+  const router = useRouter();
+  const { pathname, asPath, query } = router;
+  const { t } = useTranslation('common');
+  const { data: session } = useSession();
+
   return (
     <div className={styles.container}>
       <Head>
@@ -13,44 +20,47 @@ const Home: NextPage = () => {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+        <h1 className={styles.title}>{t('welcome')}</h1>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
+        {/* Language Change Button */}
+        <button
+          type="button"
+          onClick={() => {
+            router.push({ pathname, query }, asPath, {
+              locale: router.locale === 'es' ? 'en' : 'es',
+            });
+          }}
+        >
+          {router.locale === 'es' ? 'English' : 'Español'}
+        </button>
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
+        {/* Authentication Button */}
+        {session ? (
+          <>
+            <h4>
+              {t('welcome')} {JSON.stringify(session.user)}
+            </h4>
+            <button
+              type="button"
+              onClick={() => {
+                signOut();
+              }}
+            >
+              {t('signOut')}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              signIn();
+            }}
           >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
+            {t('signIn')}
+          </button>
+        )}
 
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+        <p className={styles.description}>{t('content')}</p>
       </main>
 
       <footer className={styles.footer}>
@@ -66,7 +76,17 @@ const Home: NextPage = () => {
         </a>
       </footer>
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
+
+export async function getStaticProps({ locale }: NextPageContext) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'en', ['common'])),
+    },
+  };
+}
